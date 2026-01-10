@@ -364,7 +364,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Your Name**
 - GitHub: [@ankurrathore](https://github.com/AnkurRathore)
-- Email: your.email@example.com
+- Email: rathore.ankur@gmail.com
 
 ## ⭐ Support
 
