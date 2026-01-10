@@ -196,18 +196,6 @@ sudo cargo run --release
 
 Some systems restrict read access to certain `/proc` files. If you get permission errors, run with `sudo`.
 
-## Project Structure
-
-```
-vmstat-rs/
-├── Cargo.toml           # Dependencies: colored = "2.1"
-├── src/
-│   └── main.rs          # ~400 lines of educational Rust
-├── README.md            # You are here
-├── .gitignore           # Rust build artifacts
-└── LICENSE              # MIT License
-```
-
 ## Learning Objectives
 
 This project teaches:
@@ -220,7 +208,7 @@ This project teaches:
 ✅ **Error handling with Result types**  
 ✅ **Performance monitoring concepts**
 
-## 🎓 Understanding the Code
+## Understanding the Code
 
 ### Key Functions
 
