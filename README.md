@@ -1,4 +1,5 @@
 # 🦀 vmstat-rs
+Inspired by Brendan Gregg’s 'Systems Performance', this tool aims to provide a modern, safe, and high-performance alternative to traditional procps tools using Rust.
 
 A Rust implementation of the classic Linux `vmstat` utility with real-time context switch monitoring and alerting. This educational tool demonstrates low-level system programming by manually parsing `/proc` filesystem files without relying on high-level crates like `procfs`.
 
