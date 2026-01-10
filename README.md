@@ -361,11 +361,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Built as an educational tool for understanding Linux system internals
 - Context switch monitoring helps identify real-world performance issues
 
-## 👤 Author
-
-**Your Name**
-- GitHub: [@ankurrathore](https://github.com/AnkurRathore)
-- Email: rathore.ankur@gmail.com
 
 ## ⭐ Support
 
