@@ -1,12 +1,9 @@
-# 🦀 vmstat-rs
+# vmstat-rs
 Inspired by Brendan Gregg’s 'Systems Performance', this tool aims to provide a modern, safe, and high-performance alternative to traditional procps tools using Rust.
 
 A Rust implementation of the classic Linux `vmstat` utility with real-time context switch monitoring and alerting. This educational tool demonstrates low-level system programming by manually parsing `/proc` filesystem files without relying on high-level crates like `procfs`.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)
-
-## 🎯 What Does This Tool Do?
+##  What Does This Tool Do?
 
 **vmstat-rs** monitors your Linux system's vital statistics in real-time and alerts you when your CPU is thrashing. Every second, it displays:
 
@@ -18,7 +15,7 @@ A Rust implementation of the classic Linux `vmstat` utility with real-time conte
 
 When context switches spike above **5,000 per second**, the entire line turns **RED** with a warning message, indicating your CPU is spending more time switching between tasks than doing actual work.
 
-## 🔥 Why Monitor Context Switches?
+## Why Monitor Context Switches?
 
 ### What is a Context Switch?
 
@@ -38,10 +35,10 @@ This takes time—precious CPU cycles that could be doing actual work.
 ### Signs of CPU Thrashing
 
 When you see **RED alerts** from this tool, it means:
-- ❌ Too many processes competing for CPU time
-- ❌ CPU spending more time switching than executing
-- ❌ System responsiveness degrading
-- ❌ Applications starving for CPU resources
+- Too many processes competing for CPU time
+- CPU spending more time switching than executing
+- System responsiveness degrading
+- Applications starving for CPU resources
 
 **Common causes:**
 - Runaway processes spawning too many threads
@@ -49,7 +46,7 @@ When you see **RED alerts** from this tool, it means:
 - Poorly optimized multi-threaded applications
 - System overload with too many concurrent processes
 
-## 🏗️ How It Works: The "Hard Way"
+## How It Works: The "Hard Way"
 
 This tool intentionally avoids using convenience crates to demonstrate raw `/proc` filesystem parsing:
 
@@ -69,7 +66,7 @@ let curr_stat = parse_vmstat()?;
 //   context_switches: 45,829,142
 
 // CALCULATE: (B - A) = rate per second
-let cs_per_sec = 45,829,142 - 45,823,910 = 5,232/sec  // 🚨 RED ALERT!
+let cs_per_sec = 45,829,142 - 45,823,910 = 5,232/sec  //  RED ALERT!
 ```
 
 ### Manual /proc Parsing
@@ -130,10 +127,10 @@ SwapTotal:       8192000 kB
 SwapFree:        8192000 kB
 ```
 
-## 📊 Output Format
+## Output Format
 
 ```
-🦀 vmstat-rs - Context Switch Monitor
+vmstat-rs - Context Switch Monitor
 Threshold: 5000+ context switches/sec will be highlighted in RED
 Press Ctrl+C to exit
 
@@ -141,7 +138,7 @@ Press Ctrl+C to exit
  2  0       1024    4521344  51200 812032    0    0    0    0 120 234  5  2 92  1  0
  1  0       1024    4518912  51200 812096    0    0    0    0 145 312  7  3 89  1  0
  3  0       1024    4516480  51232 812128    0    0    0    0 189 6234 12  8 78  2  0
-⚠️  Context switches: 6234/sec - CPU thrashing detected!    ← RED ALERT!
+ Context switches: 6234/sec - CPU thrashing detected!    ← RED ALERT!
 ```
 
 ### Column Reference
@@ -166,7 +163,7 @@ Press Ctrl+C to exit
 | **wa** | CPU waiting for I/O | % |
 | **st** | Stolen time (virtualization) | % |
 
-## 🚀 Installation & Usage
+##  Installation & Usage
 
 ### Prerequisites
 
@@ -199,7 +196,7 @@ sudo cargo run --release
 
 Some systems restrict read access to certain `/proc` files. If you get permission errors, run with `sudo`.
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```
 vmstat-rs/
@@ -211,7 +208,7 @@ vmstat-rs/
 └── LICENSE              # MIT License
 ```
 
-## 📚 Learning Objectives
+## Learning Objectives
 
 This project teaches:
 
@@ -268,7 +265,7 @@ loop {
 }
 ```
 
-## 🔬 Testing & Experimentation
+## Testing & Experimentation
 
 ### Trigger a Context Switch Spike
 
@@ -295,7 +292,7 @@ vmstat 1
 
 The numbers should match closely (minor differences due to timing).
 
-## 🐛 Troubleshooting
+##Troubleshooting
 
 **Error: Permission denied reading /proc/stat**
 - Solution: Run with `sudo`
@@ -307,7 +304,7 @@ The numbers should match closely (minor differences due to timing).
 **Build errors with colored crate**
 - Solution: `cargo clean && cargo build --release`
 
-## 🚧 Roadmap & Ideas
+## Roadmap & Ideas
 
 - [ ] **Command-line arguments** - Custom threshold: `vmstat-rs --threshold 10000`
 - [ ] **Delay/count mode** - Like real vmstat: `vmstat-rs 2 10` (2s interval, 10 iterations)
@@ -318,24 +315,7 @@ The numbers should match closely (minor differences due to timing).
 - [ ] **Process attribution** - Which process caused the spike?
 - [ ] **Memory pressure alerts** - Swap activity warnings
 
-## 🤝 Contributing
 
-Contributions are welcome! This is an educational project, so clear, well-commented code is valued.
-
-**How to contribute:**
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/awesome-feature`
-3. Make your changes with clear comments
-4. Test thoroughly: `cargo test && cargo clippy`
-5. Commit: `git commit -m 'Add awesome feature'`
-6. Push: `git push origin feature/awesome-feature`
-7. Open a Pull Request
-
-**Good first issues:**
-- Add command-line argument parsing (clap crate)
-- Implement disk I/O statistics parsing
-- Add unit tests for parsing functions
-- Improve error messages
 
 ## 📖 Further Reading
 
@@ -351,18 +331,15 @@ Contributions are welcome! This is an educational project, so clear, well-commen
 - [The Rust Programming Language](https://doc.rust-lang.org/book/)
 - [Rust by Example - File I/O](https://doc.rust-lang.org/rust-by-example/std_misc/file.html)
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Inspired by the classic `vmstat` utility (part of procps-ng)
 - Built as an educational tool for understanding Linux system internals
 - Context switch monitoring helps identify real-world performance issues
 
 
-## ⭐ Support
+## Support
 
 If you found this project helpful for learning systems programming, please consider:
 - Giving it a ⭐ on GitHub
@@ -371,4 +348,3 @@ If you found this project helpful for learning systems programming, please consi
 
 ---
 
-**Happy monitoring! May your context switches stay low and your CPUs stay productive! 🚀**
