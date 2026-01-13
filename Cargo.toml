@@ -3,7 +3,7 @@ name = "vmstat-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["Ankur Rathore <rathore.ankur@gmail.com>"]
-description = "A vmstat command emulator with context switch alerting"
+description = "A modern implementation of vmstat in Rust"
 license = "MIT"
 repository = "https://github.com/ankurrathore/vmstat-rs"
 
