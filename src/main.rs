@@ -7,7 +7,6 @@ use stats::VmStat;
 const CTXT_THRESHOLD: u64 = 5000;
 
 
-
 //The key Snapshot Function: Snapshot A vs Snapshot B
 fn calculate_deltas(prev: &VmStat, curr: &VmStat, interval_secs: f64) -> (u64,u64, u64, u64,f64,f64,f64,f64, f64){
 
