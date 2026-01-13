@@ -1,24 +1,46 @@
+<<<<<<< HEAD
 # vmstat-rs
 Inspired by Brendan Gregg’s 'Systems Performance', this tool aims to provide a modern, safe, and high-performance alternative to traditional procps tools using Rust.
+=======
+# 🦀 vmstat-rs: Modern System Observability
+>>>>>>> 65d7213 (added major and minor page fault snapshot calculation)
 
-A Rust implementation of the classic Linux `vmstat` utility with real-time context switch monitoring and alerting. This educational tool demonstrates low-level system programming by manually parsing `/proc` filesystem files without relying on high-level crates like `procfs`.
+A high-performance implementation of the classic `vmstat` utility, written in Rust.
 
+**Why rebuild a classic?**
+Standard `vmstat` aggregates all memory page faults into a single `flt` column. In modern high-performance computing (especially AI/ML training), this is insufficient. This tool distinguishes between **Minor Faults** (cheap memory re-mapping) and **Major Faults** (expensive disk I/O), allowing engineers to identify true latency bottlenecks.
+
+<<<<<<< HEAD
 ##  What Does This Tool Do?
+=======
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)
+![Platform](https://img.shields.io/badge/platform-linux-lightgrey)
 
-**vmstat-rs** monitors your Linux system's vital statistics in real-time and alerts you when your CPU is thrashing. Every second, it displays:
+## 🚀 Key Features
+>>>>>>> 65d7213 (added major and minor page fault snapshot calculation)
 
-- **Process states** (running, blocked)
-- **Memory usage** (free, buffers, cache, swap)
-- **CPU utilization** (user, system, idle, I/O wait)
-- **Context switches per second** ⚡ **← THE STAR OF THE SHOW**
-- **Interrupts per second**
+*   **Granular Memory Forensics:** Splits `pgfault` into **Minor (min)** and **Major (maj)** faults.
+*   **Zero-Dependency Parsing:** Manually parses `/proc/stat`, `/proc/vmstat`, and `/proc/meminfo` for educational transparency.
+*   **Context Switch Alerting:** Highlights rows in **RED** when context switches exceed 5,000/sec (CPU thrashing).
+*   **JSON Output:** Support for structured logging via `--json` (coming soon).
 
-When context switches spike above **5,000 per second**, the entire line turns **RED** with a warning message, indicating your CPU is spending more time switching between tasks than doing actual work.
+## 📊 The "Missing Metric": Major vs. Minor Faults
 
+Most developers see "Page Faults" and panic. This tool helps you panic only when necessary.
+
+<<<<<<< HEAD
 ## Why Monitor Context Switches?
+=======
+| Metric | Column | Description | Performance Impact |
+| :--- | :--- | :--- | :--- |
+| **Minor Fault** | `min` | The data is in RAM but needs a pointer update. | 🟢 **Negligible.** (Microseconds). Common in shared libraries. |
+| **Major Fault** | `maj` | The data is on **DISK**. The CPU must stall and wait for I/O. | 🔴 **Critical.** (Milliseconds). This kills AI training throughput. |
+>>>>>>> 65d7213 (added major and minor page fault snapshot calculation)
 
-### What is a Context Switch?
+If you see `maj` spiking while training a model, your batch size is likely too large for RAM, and you are thrashing swap/disk.
 
+<<<<<<< HEAD
 A context switch occurs when the CPU switches from executing one process/thread to another. The kernel must:
 1. Save the current process state (registers, program counter, stack pointer)
 2. Load the next process state
@@ -164,42 +186,59 @@ Press Ctrl+C to exit
 | **st** | Stolen time (virtualization) | % |
 
 ##  Installation & Usage
+=======
+## 🛠️ Installation & Usage
+>>>>>>> 65d7213 (added major and minor page fault snapshot calculation)
 
 ### Prerequisites
+*   Linux (Requires `/proc` filesystem)
+*   Rust Toolchain
 
-- **Rust 1.70+** - [Install Rust](https://rustup.rs/)
-- **Linux system** - Requires `/proc` filesystem
-- **Root/sudo access** - Needed to read some `/proc` files
-
-### Build from Source
-
+### Quick Start
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/vmstat-rs.git
+# Clone the repo
+git clone https://github.com/yourusername/vmstat-rs
 cd vmstat-rs
 
-# Build in release mode (optimized)
-cargo build --release
-
-# Run the binary
-sudo ./target/release/vmstat-rs
+# Run in release mode (for accuracy)
+cargo run --release
 ```
 
-### Quick Run (Development)
-
+### Sample Output
 ```bash
-# Run directly with Cargo
-sudo cargo run --release
+r  b   swpd   free   buff  cache   min   maj    in    cs  us  sy  id  wa
+ 1  0      0  8192M   128M  2048M   120     0   150   200   2   1  97   0
+ 0  0      0  8190M   128M  2050M   450     0   210   340   5   2  93   0
+ 2  1   500M  1024M   120M  1000M  2000    85   800  6000  10  40  10  40
+⚠️  HIGH IO LATENCY: 85 Major Faults/sec detected!
 ```
 
-### Why sudo?
+### How It Works (Under the Hood)
+This tool avoids high-level abstractions to interact directly with the Linux Kernel ABI.
+1. Source: Reads /proc/vmstat (Kernel 2.6+).
+2. The Math:
+    The kernel provides pgfault (Total) and pgmajfault (Major).
+    to calculate: Minor = Total - Major.
+3. Rate Calculation:
+4. Kernel counters are cumulative (since boot).
+    capture Snapshot A, sleep for 1 second, capture Snapshot B.
+    Rate = (B - A) / TimeDelta.
 
-Some systems restrict read access to certain `/proc` files. If you get permission errors, run with `sudo`.
+### Roadmap
 
+<<<<<<< HEAD
 ## Learning Objectives
+=======
+1. Basic CPU/Memory Stats
 
-This project teaches:
+2. Major/Minor Fault Separation
 
+3. PSI (Pressure Stall Information): Parsing /proc/pressure/cpu for modern stall tracking.
+>>>>>>> 65d7213 (added major and minor page fault snapshot calculation)
+
+4. Prometheus Exporter: Optional HTTP server to scrape metrics into Grafana.
+
+<<<<<<< HEAD
 ✅ **Low-level Linux system programming**  
 ✅ **Manual file parsing without helper libraries**  
 ✅ **Understanding /proc filesystem structure**  
@@ -336,3 +375,92 @@ If you found this project helpful for learning systems programming, please consi
 
 ---
 
+=======
+### References
+Built while studying "Systems Performance" by Brendan Gregg.
+Chapter 4: Observability Tools
+Chapter 7: Memory (Virtual Memory & Paging)
+### License
+MIT
+>>>>>>> 65d7213 (added major and minor page fault snapshot calculation)
+# 🦀 vmstat-rs: Modern System Observability
+
+A high-performance implementation of the classic `vmstat` utility, written in Rust.
+
+**Why rebuild a classic?**
+Standard `vmstat` aggregates all memory page faults into a single `flt` column. In modern high-performance computing (especially AI/ML training), this is insufficient. This tool distinguishes between **Minor Faults** (cheap memory re-mapping) and **Major Faults** (expensive disk I/O), allowing engineers to identify true latency bottlenecks.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)
+![Platform](https://img.shields.io/badge/platform-linux-lightgrey)
+
+## 🚀 Key Features
+
+*   **Granular Memory Forensics:** Splits `pgfault` into **Minor (min)** and **Major (maj)** faults.
+*   **Zero-Dependency Parsing:** Manually parses `/proc/stat`, `/proc/vmstat`, and `/proc/meminfo` for educational transparency.
+*   **Context Switch Alerting:** Highlights rows in **RED** when context switches exceed 5,000/sec (CPU thrashing).
+*   **JSON Output:** Support for structured logging via `--json` (coming soon).
+
+## 📊 The "Missing Metric": Major vs. Minor Faults
+
+Most developers see "Page Faults" and panic. This tool helps you panic only when necessary.
+
+| Metric | Column | Description | Performance Impact |
+| :--- | :--- | :--- | :--- |
+| **Minor Fault** | `min` | The data is in RAM but needs a pointer update. | 🟢 **Negligible.** (Microseconds). Common in shared libraries. |
+| **Major Fault** | `maj` | The data is on **DISK**. The CPU must stall and wait for I/O. | 🔴 **Critical.** (Milliseconds). This kills AI training throughput. |
+
+If you see `maj` spiking while training a model, your batch size is likely too large for RAM, and you are thrashing swap/disk.
+
+## 🛠️ Installation & Usage
+
+### Prerequisites
+*   Linux (Requires `/proc` filesystem)
+*   Rust Toolchain
+
+### Quick Start
+```bash
+# Clone the repo
+git clone https://github.com/yourusername/vmstat-rs
+cd vmstat-rs
+
+# Run in release mode (for accuracy)
+cargo run --release
+```
+
+### Sample Output
+```bash
+r  b   swpd   free   buff  cache   min   maj    in    cs  us  sy  id  wa
+ 1  0      0  8192M   128M  2048M   120     0   150   200   2   1  97   0
+ 0  0      0  8190M   128M  2050M   450     0   210   340   5   2  93   0
+ 2  1   500M  1024M   120M  1000M  2000    85   800  6000  10  40  10  40
+⚠️  HIGH IO LATENCY: 85 Major Faults/sec detected!
+```
+
+### How It Works (Under the Hood)
+This tool avoids high-level abstractions to interact directly with the Linux Kernel ABI.
+1. Source: Reads /proc/vmstat (Kernel 2.6+).
+2. The Math:
+    The kernel provides pgfault (Total) and pgmajfault (Major).
+    to calculate: Minor = Total - Major.
+3. Rate Calculation:
+4. Kernel counters are cumulative (since boot).
+    capture Snapshot A, sleep for 1 second, capture Snapshot B.
+    Rate = (B - A) / TimeDelta.
+
+### Roadmap
+
+1. Basic CPU/Memory Stats
+
+2. Major/Minor Fault Separation
+
+3. PSI (Pressure Stall Information): Parsing /proc/pressure/cpu for modern stall tracking.
+
+4. Prometheus Exporter: Optional HTTP server to scrape metrics into Grafana.
+
+### References
+Built while studying "Systems Performance" by Brendan Gregg.
+Chapter 4: Observability Tools
+Chapter 7: Memory (Virtual Memory & Paging)
+### License
+MIT
