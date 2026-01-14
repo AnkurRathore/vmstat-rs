@@ -33,6 +33,7 @@ struct VmStat{
    interrupts: u64,
    pgfault: u64,
    pgmajfault: u64,
+   oom_kill: u64,
 
 }
 
@@ -140,6 +141,7 @@ fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
     let vmstat_content = read_file("/proc/vmstat")?;
     let mut pgfault = 0;
     let mut pgmajfault = 0;
+    let mut oom_kill = 0;
     for line in vmstat_content.lines(){
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() <2 {
@@ -148,6 +150,7 @@ fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
         match parts[0]{
             "pgfault" => pgfault = parts[1].parse()?,
             "pgmajfault" => pgmajfault = parts[1].parse()?,
+            "oom_kill" => oom_kill = parts[1].parse()?,
             _ => (),
         }
     }
@@ -162,6 +165,7 @@ fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
         interrupts,
         pgfault,
         pgmajfault,
+        oom_kill
     })
 
 }
@@ -231,19 +235,19 @@ fn calculate_deltas(prev: &VmStat, curr: &VmStat, interval_secs: f64) -> (u64,u6
 }
 
 fn print_header() {
-    println!("{:>2} {:>2} {:>9} {:>9} {:>6} {:>6} {:>6} {:>6} {:>3} {:>3} {:>3} {:>3} {:>6} {:>6} {:>15}",
-             "r", "b", "swpd", "free", "buff", "cache", "si", "so", "bi", "bo", "in", "cs", "min", "maj", "us sy id wa st");
+    println!("{:>2} {:>2} {:>9} {:>9} {:>6} {:>6} {:>6} {:>6} {:>3} {:>3} {:>3} {:>3} {:>6} {:>6} {:>4} {:>15}",
+             "r", "b", "swpd", "free", "buff", "cache", "si", "so", "bi", "bo", "in", "cs", "min", "maj", "oom", "us sy id wa st");
 }
 
 fn print_stat(stat: &VmStat, cs_per_sec: u64, in_per_sec: u64, minor_per_sec: u64, major_per_sec: u64,
-    us: f64, sy: f64, id: f64, wa: f64) {
+    us: f64, sy: f64, id: f64, wa: f64, oom_detected: bool) {
     let swpd = (stat.swap_total - stat.swap_free) / 1024; // Convert to MB
     let free = stat.mem_info.free / 1024; // MB
     let buff = stat.mem_info.buffers / 1024; // MB
     let cache = stat.mem_info.cached / 1024; // MB
 
     let line = format!(
-        "{:>2} {:>2} {:>9} {:>9} {:>6} {:>6} {:>6} {:>6} {:>3} {:>3} {:>3} {:>3} {:>6} {:>6} {:>3.0} {:>2.0} {:>2.0} {:>2.0} {:>2}",
+        "{:>2} {:>2} {:>9} {:>9} {:>6} {:>6} {:>6} {:>6} {:>3} {:>3} {:>3} {:>3} {:>6} {:>6} {:>4} {:>3.0} {:>2.0} {:>2.0} {:>2.0} {:>2}",
         stat.procs_running,
         stat.procs_blocked,
         swpd,
@@ -258,6 +262,7 @@ fn print_stat(stat: &VmStat, cs_per_sec: u64, in_per_sec: u64, minor_per_sec: u6
         cs_per_sec,
         minor_per_sec,
         major_per_sec,
+        if oom_detected { "YES" } else {" "},
         us,
         sy,
         id,
@@ -265,6 +270,13 @@ fn print_stat(stat: &VmStat, cs_per_sec: u64, in_per_sec: u64, minor_per_sec: u6
         0  // st (steal time)
     );
 
+    // CRITICAL ALERT: OOM Kill detected (highest priority)
+    if oom_detected {
+        println!("{}", line.red().bold());
+        eprintln!("{}", "🚨🚨🚨 OOM KILL DETECTED! 🚨🚨🚨".red().bold());
+        eprintln!("{}", "A process was terminated by the kernel to save memory!".red().bold());
+        eprintln!("{}", "Check `dmesg | tail` or `journalctl -xe` for details.".red());
+    }
     // ALERT: Print in RED if context switches exceed threshold
     if cs_per_sec > CTXT_THRESHOLD {
         println!("{}", line.red().bold());
@@ -281,8 +293,10 @@ fn print_stat(stat: &VmStat, cs_per_sec: u64, in_per_sec: u64, minor_per_sec: u6
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🦀 vmstat-rs - Context Switch Monitor");
     println!("Threshold: {}+ context switches/sec will be highlighted in RED", CTXT_THRESHOLD);
-     println!("Major Page Fault Threshold: 100+ maj/sec = YELLOW alert");
+    println!("Major Page Fault Threshold: 100+ maj/sec = YELLOW alert");
+    println!("OOM Kill Detection: CRITICAL RED alert if kernel kills a process");
     println!("Press Ctrl+C to exit\n");
+    
     
     print_header();
 
@@ -290,7 +304,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut prev_stat = parse_vmstat()?;
     
     // Print first line with zeros for rates (no previous snapshot to compare)
-    print_stat(&prev_stat, 0, 0, 0, 0, 0.0, 0.0, 100.0, 0.0);
+    print_stat(&prev_stat, 0, 0, 0, 0, 0.0, 0.0, 100.0, 0.0, false);
 
     // Main monitoring loop
     loop {
@@ -303,9 +317,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // CALCULATE: (B - A) / time_interval
         let (cs_per_sec, in_per_sec, minor_per_sec, major_per_sec, us, sy, id, wa, _st) = 
             calculate_deltas(&prev_stat, &curr_stat, 1.0);
+
+        let oom_detected = curr_stat.oom_kill > prev_stat.oom_kill;
         
         // PRINT: Display the per-second rates
-        print_stat(&curr_stat, cs_per_sec, in_per_sec, minor_per_sec, major_per_sec, us, sy, id, wa);
+        print_stat(&curr_stat, cs_per_sec, in_per_sec, minor_per_sec, major_per_sec, us, sy, id, wa, oom_detected);
 
         // UPDATE: B becomes the new A for next iteration
         prev_stat = curr_stat;
