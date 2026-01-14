@@ -1,4 +1,3 @@
-```markdown
 # 🦀 vmstat-rs: Modern System Observability
 
 A high-performance implementation of the classic `vmstat` utility, written in Rust.
@@ -94,4 +93,3 @@ Built while studying **"Systems Performance"** by Brendan Gregg.
 
 ## 📄 License
 MIT
-```
