@@ -32,6 +32,14 @@ pub struct VmStat {
     pub oom_kill: u64,
 }
 
+pub struct ProcStatData {
+    pub cpu_stats: CpuStats,
+    pub context_switches: u64,
+    pub interrupts: u64,
+    pub procs_running: u64,
+    pub procs_blocked: u64,
+}
+
 fn read_file(path: &str) -> Result<String, std::io::Error> {
     fs::read_to_string(path)
 }
@@ -57,7 +65,7 @@ fn parse_meminfo() -> Result<Meminfo, Box<dyn std::error::Error>> {
     Ok(meminfo)
 }
 
-fn parse_stat() -> Result<(CpuStats, u64, u64, u64, u64), Box<dyn std::error::Error>> {
+fn parse_stat() -> Result<ProcStatData, Box<dyn std::error::Error>> {
     let content = read_file("/proc/stat")?;
     let mut cpu_stats = CpuStats {
         user: 0,
@@ -106,18 +114,18 @@ fn parse_stat() -> Result<(CpuStats, u64, u64, u64, u64), Box<dyn std::error::Er
         }
     }
 
-    Ok((
+    Ok(ProcStatData {
         cpu_stats,
         context_switches,
         interrupts,
         procs_running,
         procs_blocked,
-    ))
+    })
 }
 
 pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
     let mem_info = parse_meminfo()?;
-    let (cpu_stats, context_switches, interrupts, procs_running, procs_blocked) = parse_stat()?;
+    let stat_data = parse_stat()?;
     let content = read_file("/proc/meminfo")?;
     let mut swap_total = 0;
     let mut swap_free = 0;
@@ -133,7 +141,7 @@ pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
         }
     }
 
-    //Parsing page fault statistics from /proc/vmstat
+    // Parsing page fault statistics from /proc/vmstat
     let vmstat_content = read_file("/proc/vmstat")?;
     let mut pgfault = 0;
     let mut pgmajfault = 0;
@@ -151,14 +159,14 @@ pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
         }
     }
     Ok(VmStat {
-        procs_running,
-        procs_blocked,
+        procs_running: stat_data.procs_running,
+        procs_blocked: stat_data.procs_blocked,
         mem_info,
-        cpu_stats,
+        cpu_stats: stat_data.cpu_stats,
         swap_total,
         swap_free,
-        context_switches,
-        interrupts,
+        context_switches: stat_data.context_switches,
+        interrupts: stat_data.interrupts,
         pgfault,
         pgmajfault,
         oom_kill,

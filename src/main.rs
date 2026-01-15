@@ -6,13 +6,22 @@ use std::time::Duration;
 
 const CTXT_THRESHOLD: u64 = 5000;
 
-//The key Snapshot Function: Snapshot A vs Snapshot B
-fn calculate_deltas(
-    prev: &VmStat,
-    curr: &VmStat,
-    interval_secs: f64,
-) -> (u64, u64, u64, u64, f64, f64, f64, f64, f64) {
-    //Calcullate delat: B - A for context switches
+// This holds the calculated "per second" values
+struct SystemRates {
+    cs_per_sec: u64,
+    in_per_sec: u64,
+    minor_per_sec: u64,
+    major_per_sec: u64,
+    us: f64,
+    sy: f64,
+    id: f64,
+    wa: f64,
+    oom_detected: bool,
+}
+
+// The key Snapshot Function: Snapshot A vs Snapshot B
+fn calculate_deltas(prev: &VmStat, curr: &VmStat, interval_secs: f64) -> SystemRates {
+    // Calculate delta: B - A for context switches
     let cs_delta = curr.context_switches.saturating_sub(prev.context_switches);
     let in_delta = curr.interrupts.saturating_sub(prev.interrupts);
 
@@ -78,7 +87,9 @@ fn calculate_deltas(
         0.0
     };
 
-    (
+    let oom_detected = curr.oom_kill > prev.oom_kill;
+
+    SystemRates {
         cs_per_sec,
         in_per_sec,
         minor_per_sec,
@@ -87,27 +98,21 @@ fn calculate_deltas(
         sy,
         id,
         wa,
-        0.0,
-    )
+        oom_detected,
+    }
 }
 
 fn print_header() {
-    println!("{:>2} {:>2} {:>9} {:>9} {:>6} {:>6} {:>6} {:>6} {:>3} {:>3} {:>3} {:>3} {:>6} {:>6} {:>4} {:>15}",
-             "r", "b", "swpd", "free", "buff", "cache", "si", "so", "bi", "bo", "in", "cs", "min", "maj", "oom", "us sy id wa st");
+    println!(
+        "{:>2} {:>2} {:>9} {:>9} {:>6} {:>6} {:>6} {:>6} {:>3} {:>3} {:>3} {:>3} {:>6} {:>6} {:>4} {:>15}",
+        "r", "b", "swpd", "free", "buff", "cache", "si", "so", "bi", "bo", "in", "cs", "min", "maj", "oom", "us sy id wa st"
+    );
 }
 
-fn print_stat(
-    stat: &VmStat,
-    cs_per_sec: u64,
-    in_per_sec: u64,
-    minor_per_sec: u64,
-    major_per_sec: u64,
-    us: f64,
-    sy: f64,
-    id: f64,
-    wa: f64,
-    oom_detected: bool,
-) {
+fn print_stat(stat: &VmStat, rates: &SystemRates) {
+    let cs_per_sec = rates.cs_per_sec;
+    let oom_detected = rates.oom_detected;
+
     let swpd = (stat.swap_total - stat.swap_free) / 1024; // Convert to MB
     let free = stat.mem_info.free / 1024; // MB
     let buff = stat.mem_info.buffers / 1024; // MB
@@ -125,16 +130,16 @@ fn print_stat(
         0, // so (swap out)
         0, // bi (blocks in)
         0, // bo (blocks out)
-        in_per_sec,
-        cs_per_sec,
-        minor_per_sec,
-        major_per_sec,
-        if oom_detected { "YES" } else {" "},
-        us,
-        sy,
-        id,
-        wa,
-        0  // st (steal time)
+        rates.in_per_sec,
+        rates.cs_per_sec,
+        rates.minor_per_sec,
+        rates.major_per_sec,
+        if oom_detected { "YES" } else { " " },
+        rates.us,
+        rates.sy,
+        rates.id,
+        rates.wa,
+        0 // st (steal time)
     );
 
     // CRITICAL ALERT: OOM Kill detected (highest priority)
@@ -159,11 +164,11 @@ fn print_stat(
             "⚠️  {} - CPU thrashing detected!",
             format!("Context switches: {}/sec", cs_per_sec).red().bold()
         );
-    } else if major_per_sec > 100 {
+    } else if rates.major_per_sec > 100 {
         println!("{}", line.yellow().bold());
         eprintln!(
             "⚠️  {} - High major page faults detected!",
-            format!("Major page faults: {}/sec", major_per_sec)
+            format!("Major page faults: {}/sec", rates.major_per_sec)
                 .yellow()
                 .bold()
         );
@@ -187,7 +192,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut prev_stat = stats::parse_vmstat()?;
 
     // Print first line with zeros for rates (no previous snapshot to compare)
-    print_stat(&prev_stat, 0, 0, 0, 0, 0.0, 0.0, 100.0, 0.0, false);
+    let initial_rates = SystemRates {
+        cs_per_sec: 0,
+        in_per_sec: 0,
+        minor_per_sec: 0,
+        major_per_sec: 0,
+        us: 0.0,
+        sy: 0.0,
+        id: 100.0,
+        wa: 0.0,
+        oom_detected: false,
+    };
+    print_stat(&prev_stat, &initial_rates);
 
     // Main monitoring loop
     loop {
@@ -198,24 +214,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let curr_stat = stats::parse_vmstat()?;
 
         // CALCULATE: (B - A) / time_interval
-        let (cs_per_sec, in_per_sec, minor_per_sec, major_per_sec, us, sy, id, wa, _st) =
-            calculate_deltas(&prev_stat, &curr_stat, 1.0);
-
-        let oom_detected = curr_stat.oom_kill > prev_stat.oom_kill;
+        let rates = calculate_deltas(&prev_stat, &curr_stat, 1.0);
 
         // PRINT: Display the per-second rates
-        print_stat(
-            &curr_stat,
-            cs_per_sec,
-            in_per_sec,
-            minor_per_sec,
-            major_per_sec,
-            us,
-            sy,
-            id,
-            wa,
-            oom_detected,
-        );
+        print_stat(&curr_stat, &rates);
 
         // UPDATE: B becomes the new A for next iteration
         prev_stat = curr_stat;
