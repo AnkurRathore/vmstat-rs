@@ -57,7 +57,7 @@ fn parse_meminfo() -> Result<Meminfo, Box<dyn std::error::Error>> {
     Ok(meminfo)
 }
 
-fn parse_stat() -> Result<(CpuStats,u64,u64, u64, u64), Box<dyn std::error::Error>> {
+fn parse_stat() -> Result<(CpuStats, u64, u64, u64, u64), Box<dyn std::error::Error>> {
     let content = read_file("/proc/stat")?;
     let mut cpu_stats = CpuStats {
         user: 0,
@@ -80,36 +80,39 @@ fn parse_stat() -> Result<(CpuStats,u64,u64, u64, u64), Box<dyn std::error::Erro
                     cpu_stats.system = parts[3].parse()?;
                     cpu_stats.idle = parts[4].parse()?;
                     cpu_stats.iowait = parts[5].parse()?;
-                
                 }
-
-        }
-        "ctxt" => {
-            if parts.len() >= 2 {
-                context_switches = parts[1].parse()?;
             }
-        }
-        "intr" => {
-            if parts.len() >= 2 {
-                interrupts = parts[1].parse()?;
-
+            "ctxt" => {
+                if parts.len() >= 2 {
+                    context_switches = parts[1].parse()?;
+                }
             }
-        }
-        "procs_running" => {
-            if parts.len() >= 2 {
-                procs_running = parts[1].parse()?;
+            "intr" => {
+                if parts.len() >= 2 {
+                    interrupts = parts[1].parse()?;
+                }
             }
-        }
-        "procs_blocked" => {
-            if parts.len() >= 2 {
-                procs_blocked = parts[1].parse()?;
+            "procs_running" => {
+                if parts.len() >= 2 {
+                    procs_running = parts[1].parse()?;
+                }
             }
+            "procs_blocked" => {
+                if parts.len() >= 2 {
+                    procs_blocked = parts[1].parse()?;
+                }
+            }
+            _ => (),
         }
-        _ => (),
     }
-}
 
-    Ok((cpu_stats,context_switches, interrupts, procs_running, procs_blocked))
+    Ok((
+        cpu_stats,
+        context_switches,
+        interrupts,
+        procs_running,
+        procs_blocked,
+    ))
 }
 
 pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
@@ -120,16 +123,14 @@ pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
     let mut swap_free = 0;
     for line in content.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() <2 {
+        if parts.len() < 2 {
             continue;
-
         }
         match parts[0] {
             "SwapTotal:" => swap_total = parts[1].parse()?,
             "SwapFree:" => swap_free = parts[1].parse()?,
             _ => (),
-        }   
-        
+        }
     }
 
     //Parsing page fault statistics from /proc/vmstat
@@ -137,12 +138,12 @@ pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
     let mut pgfault = 0;
     let mut pgmajfault = 0;
     let mut oom_kill = 0;
-    for line in vmstat_content.lines(){
+    for line in vmstat_content.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() <2 {
+        if parts.len() < 2 {
             continue;
         }
-        match parts[0]{
+        match parts[0] {
             "pgfault" => pgfault = parts[1].parse()?,
             "pgmajfault" => pgmajfault = parts[1].parse()?,
             "oom_kill" => oom_kill = parts[1].parse()?,
@@ -160,7 +161,6 @@ pub fn parse_vmstat() -> Result<VmStat, Box<dyn std::error::Error>> {
         interrupts,
         pgfault,
         pgmajfault,
-        oom_kill
+        oom_kill,
     })
-
 }
